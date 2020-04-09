@@ -16,8 +16,6 @@ class PID {
 
   int64_t integral_max, integral_min;
 
-  int32_t derivative_max, derivative_min;
-
   int64_t comp_proportional, comp_integral, comp_derivative;
 
   int32_t error, last_error, derivative_error, last_setpoint;
@@ -32,7 +30,6 @@ public:
   void set_ki(float new_ki, uint32_t new_freq);
   void set_kd(float new_kd, uint32_t new_freq);
   void set_output_limit(int32_t new_limits);
-  void set_derivative_limit(int32_t new_limit);
   void set_anti_windup(int32_t new_limit);
 
   void get_coefficients(float* ret_kp, float* ret_ki, float* ret_kd);

@@ -53,12 +53,6 @@ void PID::set_anti_windup(int32_t new_limit){
 }
 
 
-void PID::set_derivative_limit(int32_t new_limit){
-  derivative_min = - new_limit;
-  derivative_max = new_limit;
-}
-
-
 void PID::get_coefficients(float* ret_kp, float* ret_ki, float* ret_kd){
   *ret_kp = kp;
   *ret_ki = ki;
@@ -68,7 +62,6 @@ void PID::get_coefficients(float* ret_kp, float* ret_ki, float* ret_kd){
 
 int16_t PID::compute(int32_t input, int32_t setpoint){
   int64_t res;
-  int16_t out;
 
   error = setpoint-input;
   derivative_error = (error-last_error) - (setpoint - last_setpoint);
@@ -87,10 +80,6 @@ int16_t PID::compute(int32_t input, int32_t setpoint){
 
   //Derivative component
   comp_derivative = (int64_t)kd * (int64_t)derivative_error;
-  if(comp_derivative>derivative_max)
-    comp_derivative = derivative_max;
-  else if(comp_derivative < derivative_min)
-    comp_derivative = derivative_min;
 
   //Complete scaled output
   res = comp_proportional + comp_integral + comp_derivative;
@@ -101,7 +90,7 @@ int16_t PID::compute(int32_t input, int32_t setpoint){
   else if(res<min)
     res = min;
 
-  return out;
+  return res;
 }
 
 

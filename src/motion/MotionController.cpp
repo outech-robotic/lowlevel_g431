@@ -29,20 +29,16 @@ void MotionController::init() {
   pid_speed_left.set_coefficients(0.275, 0.24, 0.0002, MOTION_CONTROL_FREQ);
   pid_speed_left.set_output_limit(CONST_PWM_MAX);
   pid_speed_left.set_anti_windup(CONST_PWM_MAX);
-  pid_speed_left.set_derivative_limit(CONST_PWM_MAX);
   pid_speed_right.set_coefficients(0.27, 0.22, 0.0002, MOTION_CONTROL_FREQ);
   pid_speed_right.set_output_limit(CONST_PWM_MAX);
   pid_speed_right.set_anti_windup(CONST_PWM_MAX);
-  pid_speed_right.set_derivative_limit(CONST_PWM_MAX);
 
   pid_translation.set_coefficients(3.0, 0.1, 0.2, MOTION_CONTROL_FREQ);
   pid_translation.set_output_limit(MAX_SPEED_TRANSLATION_TICK);
   pid_translation.set_anti_windup(MAX_SPEED_TRANSLATION_TICK);
-  pid_translation.set_derivative_limit(MAX_SPEED_TRANSLATION_TICK);
   pid_rotation.set_coefficients(4.9, 0.2, 0.8, MOTION_CONTROL_FREQ);
   pid_rotation.set_output_limit(MAX_SPEED_ROTATION_TICK);
   pid_rotation.set_anti_windup(MAX_SPEED_ROTATION_TICK);
-  pid_rotation.set_derivative_limit(MAX_SPEED_ROTATION_TICK);
 
   motor_left.init();
   motor_right.init();
@@ -233,7 +229,7 @@ int32_t MotionController::get_COD_right(){
   return cod_right.current;
 }
 
-
+/*
 bool MotionController::is_wheel_blocked(wheel_block_status& wheel_status, const encoder_status& cod_status, PID& pid_status){
   static const uint8_t INIT_COUNT = 20;
   static const float LIMIT = 0.3;
@@ -257,7 +253,7 @@ bool MotionController::is_wheel_blocked(wheel_block_status& wheel_status, const 
     wheel_status.count_blocks=INIT_COUNT;
   }
   return (wheel_status.blocked && (wheel_status.count_blocks == 0));
-}
+}*/
 
 // Detects if the robot is physically stopped (blocked)
 bool MotionController::is_robot_blocked(){
@@ -293,8 +289,8 @@ bool MotionController::has_movement_ended(){
 
 
 void MotionController::detect_stop(){
-  bool status_block; // is the robot physically blocked and should stop?
-  bool status_end;   // is the robot at the end of a movement, as expected?
+//  bool status_block; // is the robot physically blocked and should stop?
+//  bool status_end;   // is the robot at the end of a movement, as expected?
 //  static bool block_started = false;
 //  status_block = is_robot_blocked();
 //  // if done or blocked, stop the robot
@@ -545,12 +541,10 @@ void MotionController::set_limits(uint16_t speed_translation, uint16_t speed_rot
   robot_status.speed_max_translation = speed_translation;
   pid_translation.set_output_limit(speed_translation);
   pid_translation.set_anti_windup(speed_translation);
-  pid_translation.set_derivative_limit(speed_translation);
 
   robot_status.speed_max_rotation = speed_rotation;
   pid_rotation.set_output_limit(speed_rotation);
   pid_rotation.set_anti_windup(speed_rotation);
-  pid_rotation.set_derivative_limit(speed_rotation);
 
   robot_status.speed_max_wheel= speed_wheel;
   robot_status.accel_max = accel_wheel/MOTION_CONTROL_FREQ; // Acceleration is in tick/s each mcs update iteration

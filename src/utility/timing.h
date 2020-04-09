@@ -19,6 +19,6 @@ uint32_t millis();
 void delay_ms(uint32_t ms);
 void delay_us(uint32_t us);
 #ifdef __cplusplus
-};
+}
 #endif
 #endif /* LL_TIME_TIMING_H_ */

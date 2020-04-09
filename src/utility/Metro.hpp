@@ -26,7 +26,7 @@ public:
 
     bool check(){
         this->current = millis();
-        if(this->current-this->last_check>this->interval){
+        if(this->current-this->last_check>=this->interval){
             this->last_check=this->current;
             return true;
         }

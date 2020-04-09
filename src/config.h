@@ -38,7 +38,15 @@ void Error_Handler(void);
 #define CONST_USART_BAUDRATE (115200)
 
 //BUFFER SIZE USED IN ISR
-#define CONST_CAN_BUFFER_SIZE (16)
+
+#define CONST_CAN_BOARD_ID    ((uint16_t)0)                    // 10 bits  unique board ID
+#define CONST_CAN_RX_ID       (CONST_CAN_BOARD_ID << 1)        // 11 bits ID, LSb is a 0 for (Master) ->  (This)  transfers
+#define CONST_CAN_TX_ID       (CONST_CAN_BOARD_ID << 1 | 1)    // 11 bits ID, LSb is a 1 for  (This)  -> (Master) transfers
+
+#define CONST_CAN_BUFFER_SIZE ((uint16_t)32)
+#define CONST_ISOTP_BUFF_SIZE ((size_t)4096)
+#define CONST_PB_BUFF_SIZE    ((size_t)16)
+
 
 //CAN IDS
 #define CAN_PIPE_WIDTH        (2)

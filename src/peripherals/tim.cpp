@@ -8,10 +8,10 @@
 //CH3 : PWM2 PA10
 void MX_TIM1_Init(void)
 {
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-  LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
+  LL_TIM_InitTypeDef TIM_InitStruct = {};
+  LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {};
 
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {};
   /* Peripheral clock enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM1);
 
@@ -89,8 +89,8 @@ void MX_TIM1_Init(void)
 /* TIM2 init function */
 void MX_TIM2_Init(void)
 {
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+  LL_TIM_InitTypeDef TIM_InitStruct = {};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {};
 
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
@@ -140,9 +140,9 @@ void MX_TIM2_Init(void)
 /* TIM3 init function */
 void MX_TIM3_Init(void)
 {
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+  LL_TIM_InitTypeDef TIM_InitStruct = {};
 
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {};
 
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
@@ -193,7 +193,7 @@ void MX_TIM3_Init(void)
 /* TIM16 init function */
 void MX_TIM16_Init(void)
 {
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+  LL_TIM_InitTypeDef TIM_InitStruct = {};
   /* Peripheral clock enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM16);
 

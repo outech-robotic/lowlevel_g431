@@ -41,7 +41,7 @@ class Serial{
      * @return false if failure
      */
     bool init_gpios(GPIO_Pin& rx, GPIO_Pin& tx){
-        LL_GPIO_InitTypeDef  gpio_init_struct={0};
+        LL_GPIO_InitTypeDef  gpio_init_struct={};
         // GPIO Peripheral clock enable
         gpio_port_enable_clock(rx.port);
         gpio_port_enable_clock(tx.port);

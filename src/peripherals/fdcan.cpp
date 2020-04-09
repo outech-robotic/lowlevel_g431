@@ -81,7 +81,7 @@ int CAN_send_packet(can_tx_msg* msg){
 
 
 int CAN_send_packet(uint16_t std_id, const uint8_t* data, uint8_t size, bool remote){
-  can_tx_msg msg={0};
+  can_tx_msg msg={};
   msg.header.FDFormat = FDCAN_CLASSIC_CAN;
   msg.header.TxFrameType = remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
   msg.header.DataLength=size << 16;
@@ -99,7 +99,7 @@ void MX_FDCAN1_Init(void)
   hcan.Instance = FDCAN1;
   hcan.Init.ClockDivider = FDCAN_CLOCK_DIV10;
   hcan.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hcan.Init.Mode = FDCAN_MODE_NORMAL;
+  hcan.Init.Mode = FDCAN_MODE_EXTERNAL_LOOPBACK;
   hcan.Init.AutoRetransmission = ENABLE;
   hcan.Init.TransmitPause = ENABLE;
   hcan.Init.ProtocolException = DISABLE;
@@ -128,20 +128,20 @@ void MX_FDCAN1_Init(void)
   }
 
   // FILTER CONFIG
-  FDCAN_FilterTypeDef filterConfig = {0};
+  FDCAN_FilterTypeDef filterConfig = {};
 
   filterConfig.FilterIndex = 0;
   filterConfig.IdType = FDCAN_STANDARD_ID;
   filterConfig.FilterType = FDCAN_FILTER_MASK;
   filterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  filterConfig.FilterID1 = 0x7F1; //ID to check
+  filterConfig.FilterID1 = CONST_CAN_RX_ID; //ID to check
   filterConfig.FilterID2 = 0x7FF; //Bits of ID1 that must match
   if((res = HAL_FDCAN_ConfigFilter(&hcan, &filterConfig)) != HAL_OK){
       while(1);
   }
 
   filterConfig.FilterIndex = 1;
-  filterConfig.FilterID1 = 0x7E1; //ID to check
+  filterConfig.FilterID1 = 0x010; //ID to check
   filterConfig.FilterID2 = 0x7FF; //Bits of ID1 that must match
   if((res = HAL_FDCAN_ConfigFilter(&hcan, &filterConfig)) != HAL_OK){
       while(1);
@@ -172,7 +172,7 @@ void MX_FDCAN1_Init(void)
 void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
 {
 
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitTypeDef GPIO_InitStruct = {};
   if(fdcanHandle->Instance==FDCAN1)
   {
   /* USER CODE BEGIN FDCAN1_MspInit 0 */
@@ -228,8 +228,6 @@ extern "C"{
 
 void FDCAN1_IT0_IRQHandler(void){
   HAL_StatusTypeDef res;
-  int8_t free_mailbox = 0;
-  uint32_t used_mailbox;
   can_tx_msg tx_msg;
   can_rx_msg rx_msg;
 
