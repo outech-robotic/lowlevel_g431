@@ -7,8 +7,8 @@
  *      Set of functions used for ISO-TP
  */
 
+#include <peripheral/fdcan.h>
 #include "stm32g431xx.h"
-#include "peripherals/fdcan.h"
 #include "utility/timing.h"
 
 #ifdef __cplusplus

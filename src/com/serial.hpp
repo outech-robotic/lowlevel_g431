@@ -9,13 +9,13 @@
 #define COM_SERIAL_HPP_
 
 
+#include <peripheral/gpio.h>
 #include <stm32g4xx_ll_bus.h>
 #include <stm32g4xx_ll_usart.h>
 
 #include <cstdarg>
 #include <cstdio>
 
-#include "peripherals/gpio.h"
 #include "utility/timing.h"
 #include "utility/ring_buffer.hpp"
 #include "utility/macros.h"

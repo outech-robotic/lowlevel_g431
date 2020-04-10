@@ -8,9 +8,9 @@
 #ifndef MOTION_MOTIONCONTROLLER_H_
 #define MOTION_MOTIONCONTROLLER_H_
 #include <motion/PID.h>
+#include <peripheral/tim.h>
 #include "utility/Average.hpp"
 #include "Motor.h"
-#include "peripherals/tim.h"
 
 class MotionController {
 

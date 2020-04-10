@@ -1,7 +1,7 @@
+#include <peripheral/tim.h>
 #include "stm32g4xx_ll_bus.h"
 #include "stm32g4xx_ll_gpio.h"
 
-#include "tim.h"
 #include "config.h"
 
 //CH1 : PWM1 PA8

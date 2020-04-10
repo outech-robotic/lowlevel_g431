@@ -8,7 +8,7 @@
 #ifndef COM_CAN_PB_HPP_
 #define COM_CAN_PB_HPP_
 
-#include "peripherals/fdcan.h"
+#include <peripheral/fdcan.h>
 #include "com/isotp/isotp.h"
 #include "com/proto/pb_encode.h"
 #include "com/proto/pb_decode.h"
