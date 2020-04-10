@@ -12,7 +12,7 @@
 #include "com/isotp/isotp.h"
 #include "com/proto/pb_encode.h"
 #include "com/proto/pb_decode.h"
-#include "com/proto/proto.pb.h"
+#include "com/proto/roboto.pb.h"
 #include "utility/ring_buffer.hpp"
 #include "config.h"
 

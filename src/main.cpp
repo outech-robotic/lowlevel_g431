@@ -1,5 +1,4 @@
-#include <can_pb.hpp>
-#include "peripherals/tim.h"
+#include "com/can_pb.hpp"
 #include "utility/timing.h"
 #include "com/serial.hpp"
 #include "motion/MotionController.h"
@@ -13,30 +12,38 @@
 /**********************************************************************
  *                             GLOBAL OBJECTS
  **********************************************************************/
-Metro can_timer(10);
-Metro heartbeat_timer(10);
+Metro position_timer(10);
+Metro heartbeat_timer(500);
 
 Serial serial;
 MotionController mcs;
+Can_PB canpb(CONST_CAN_RX_ID, CONST_CAN_TX_ID);
 
 int main(void)
 {
   int ret;
   MotionController::STOP_STATUS mcs_stop_status;
-  Can_PB canpb(CONST_CAN_RX_ID, CONST_CAN_TX_ID);
-  Can_PB canpb2(0x10, 0x11);
 
   can_rx_msg can_raw_msg;
 
+  // Proto Buffers Messages
   BusMessage msg_rx = BusMessage_init_zero;
-  BusMessage msg_tx = BusMessage_init_zero;
+  BusMessage msg_move_end = BusMessage_init_zero;
+  BusMessage msg_heartbeat = BusMessage_init_zero;
+  BusMessage msg_encoder = BusMessage_init_zero;
 
-  msg_tx.message.encoderPosition = EncoderPositionMsg_init_zero;
+  msg_encoder.message_content.encoderPosition = EncoderPositionMsg_init_zero;
+  msg_encoder.which_message_content = BusMessage_encoderPosition_tag;
 
-  msg_tx.message.encoderPosition.left_tick  = 1;
-  msg_tx.message.encoderPosition.right_tick = -1;
-  msg_tx.which_message = BusMessage_encoderPosition_tag;
+  msg_move_end.message_content.movementEnded = MovementEndedMsg_init_zero;
+  msg_move_end.message_content.movementEnded.blocked = false;
+  msg_move_end.which_message_content = BusMessage_movementEnded_tag;
 
+  msg_heartbeat.message_content.heartbeat = HeartbeatMsg_init_zero;
+  msg_heartbeat.which_message_content = BusMessage_heartbeat_tag;
+
+
+  // peripherals init
   MX_FDCAN1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
@@ -56,22 +63,20 @@ int main(void)
 
   while (1)
   {
+    // Update ISOTP server
     if(CAN_receive_packet(&can_raw_msg) == HAL_OK){
       if(canpb.match_id(can_raw_msg.header.Identifier)){
         canpb.update_rx_msg(can_raw_msg);
       }
-      if(canpb2.match_id(can_raw_msg.header.Identifier)){
-        canpb2.update_rx_msg(can_raw_msg);
-      }
     }
-
     canpb.update();
-    canpb2.update();
 
+
+    // Order reception
     if(canpb.is_rx_available()){
       ret = canpb.receive_msg(msg_rx);
       if(ret == Can_PB::CAN_PB_RET_OK){
-        switch(msg_rx.which_message){
+        switch(msg_rx.which_message_content){
           case BusMessage_stopMoving_tag:
             serial.println("Packet Received: StopMoving");
             mcs.stop(false);
@@ -79,30 +84,40 @@ int main(void)
 
           case BusMessage_translate_tag:
             serial.println("Packet Received: Translate");
-            mcs.translate_ticks(msg_rx.message.translate.ticks);
+            mcs.translate_ticks(msg_rx.message_content.translate.ticks);
             break;
 
           case BusMessage_rotate_tag:
             serial.println("Packet Received: Rotate");
-            mcs.rotate_ticks(msg_rx.message.rotate.ticks);
+            mcs.rotate_ticks(msg_rx.message_content.rotate.ticks);
             break;
 
           case BusMessage_moveWheelAtSpeed_tag:
             serial.println("Packet Received: MoveWheelAtSpeed");
-            mcs.set_target_speed(Motor::Side::LEFT, msg_rx.message.moveWheelAtSpeed.left_tick_per_sec);
-            mcs.set_target_speed(Motor::Side::RIGHT, msg_rx.message.moveWheelAtSpeed.right_tick_per_sec);
+            mcs.set_target_speed(Motor::Side::LEFT, msg_rx.message_content.moveWheelAtSpeed.left_tick_per_sec);
+            mcs.set_target_speed(Motor::Side::RIGHT, msg_rx.message_content.moveWheelAtSpeed.right_tick_per_sec);
             break;
 
           case BusMessage_setMotionControlMode_tag:
             serial.println("Packet Received: SetMotionControlMode");
-            mcs.set_control(msg_rx.message.setMotionControlMode.speed, msg_rx.message.setMotionControlMode.translation, msg_rx.message.setMotionControlMode.rotation);
+            mcs.set_control(msg_rx.message_content.setMotionControlMode.speed, msg_rx.message_content.setMotionControlMode.translation, msg_rx.message_content.setMotionControlMode.rotation);
             break;
 
-          case BusMessage_setPID_tag:
-            serial.println("Packet Received: SetPID");
-            mcs.set_kp(msg_rx.message.setPID.pid_id ,msg_rx.message.setPID.kp);
-            mcs.set_ki(msg_rx.message.setPID.pid_id ,msg_rx.message.setPID.ki);
-            mcs.set_kd(msg_rx.message.setPID.pid_id ,msg_rx.message.setPID.kd);
+          case BusMessage_pidConfig_tag:
+            serial.println("Packet Received: PID Config");
+            mcs.set_kp(msg_rx.message_content.pidConfig.pid_id ,msg_rx.message_content.pidConfig.kp);
+            mcs.set_ki(msg_rx.message_content.pidConfig.pid_id ,msg_rx.message_content.pidConfig.ki);
+            mcs.set_kd(msg_rx.message_content.pidConfig.pid_id ,msg_rx.message_content.pidConfig.kd);
+            break;
+
+          case BusMessage_motionLimit_tag:
+            serial.println("Packet Received: Motion Limits");
+            mcs.set_limits(
+              msg_rx.message_content.motionLimit.translation_speed,
+              msg_rx.message_content.motionLimit.rotation_speed,
+              msg_rx.message_content.motionLimit.wheel_speed,
+              msg_rx.message_content.motionLimit.wheel_acceleration
+            );
             break;
 
           default:
@@ -115,31 +130,28 @@ int main(void)
     mcs_stop_status = mcs.has_stopped();
     //If the robot has stopped or cannot move normally
     if(mcs_stop_status != MotionController::STOP_STATUS::NONE){
-      msg_tx.which_message = BusMessage_movementEnded_tag;
-      msg_tx.message.movementEnded = MovementEndedMsg_init_zero;
-      msg_tx.message.movementEnded.blocked = (mcs_stop_status == MotionController::STOP_STATUS::BLOCKED);
-      if(canpb.send_msg(msg_tx) != Can_PB::CAN_PB_RET_OK){
+      msg_move_end.message_content.movementEnded.blocked = (mcs_stop_status == MotionController::STOP_STATUS::BLOCKED);
+      if(canpb.send_msg(msg_move_end) != Can_PB::CAN_PB_RET_OK){
         serial.print("ERROR: SENDING MOVEMENT END\r\n");
       }
     }
 
-
-    if(can_timer.check()){
-
+    //Periodic encoder position message
+    if(position_timer.check()){
       if(canpb.is_tx_available()){
-        msg_tx.message.encoderPosition.left_tick++;
-        msg_tx.message.encoderPosition.right_tick--;
-        ret = canpb.send_msg(msg_tx);
-        if(ret == Can_PB::CAN_PB_RET_OK){
-          togglePin(PB3);
-          togglePin(PIN_LED);
+        msg_encoder.message_content.encoderPosition.left_tick  = mcs.get_COD_left();
+        msg_encoder.message_content.encoderPosition.right_tick = mcs.get_COD_right();
+        if(canpb.send_msg(msg_encoder) != Can_PB::CAN_PB_RET_OK){
+          serial.print("ERROR: SENDING ENCODER POS\r\n");
         }
       }
-      if(canpb2.is_tx_available()){
-        msg_tx.message.encoderPosition.left_tick++;
-        msg_tx.message.encoderPosition.right_tick--;
-        ret = canpb2.send_msg(msg_tx);
-        if(ret == Can_PB::CAN_PB_RET_OK){
+    }
+
+    //Periodic Heartbeat
+    if(heartbeat_timer.check()){
+      if(canpb.is_tx_available()){
+        if(canpb.send_msg(msg_heartbeat) != Can_PB::CAN_PB_RET_OK){
+          serial.print("ERROR: SENDING HEARTBEAT\r\n");
         }
       }
     }

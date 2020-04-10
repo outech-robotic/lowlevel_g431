@@ -20,7 +20,7 @@ void Error_Handler(void);
 // TIMER PWM
 #define CONST_PWM_PRESCALER  8
 #define CONST_PWM_AUTORELOAD 1000
-#define CONST_PWM_REPETITION 256
+#define CONST_PWM_REPETITION 1
 #define CONST_PWM_MAX        CONST_PWM_AUTORELOAD
 
 // ASSERVISSEMENT
@@ -37,15 +37,15 @@ void Error_Handler(void);
 //USART CONFIG
 #define CONST_USART_BAUDRATE (115200)
 
-//BUFFER SIZE USED IN ISR
-
+// IDs used by board on CAN interface
 #define CONST_CAN_BOARD_ID    ((uint16_t)0)                    // 10 bits  unique board ID
-#define CONST_CAN_RX_ID       (CONST_CAN_BOARD_ID << 1)        // 11 bits ID, LSb is a 0 for (Master) ->  (This)  transfers
-#define CONST_CAN_TX_ID       (CONST_CAN_BOARD_ID << 1 | 1)    // 11 bits ID, LSb is a 1 for  (This)  -> (Master) transfers
+#define CONST_CAN_RX_ID       (CONST_CAN_BOARD_ID << 1 | 1)    // 11 bits ID, LSb is a 1 for (Master) ->  (This)  transfers
+#define CONST_CAN_TX_ID       (CONST_CAN_BOARD_ID << 1    )    // 11 bits ID, LSb is a 0 for  (This)  -> (Master) transfers => higher priority
 
-#define CONST_CAN_BUFFER_SIZE ((uint16_t)32)
-#define CONST_ISOTP_BUFF_SIZE ((size_t)4096)
-#define CONST_PB_BUFF_SIZE    ((size_t)16)
+//BUFFER SIZE USED IN ISR
+#define CONST_CAN_BUFFER_SIZE (32)
+#define CONST_ISOTP_BUFF_SIZE (4096)
+#define CONST_PB_BUFF_SIZE    (32)
 
 
 //CAN IDS

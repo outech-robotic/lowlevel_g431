@@ -99,7 +99,7 @@ void MX_FDCAN1_Init(void)
   hcan.Instance = FDCAN1;
   hcan.Init.ClockDivider = FDCAN_CLOCK_DIV10;
   hcan.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hcan.Init.Mode = FDCAN_MODE_EXTERNAL_LOOPBACK;
+  hcan.Init.Mode = FDCAN_MODE_NORMAL;
   hcan.Init.AutoRetransmission = ENABLE;
   hcan.Init.TransmitPause = ENABLE;
   hcan.Init.ProtocolException = DISABLE;
@@ -111,7 +111,7 @@ void MX_FDCAN1_Init(void)
   hcan.Init.DataSyncJumpWidth = 1;
   hcan.Init.DataTimeSeg1 = 1;
   hcan.Init.DataTimeSeg2 = 1;
-  hcan.Init.StdFiltersNbr = 2;
+  hcan.Init.StdFiltersNbr = 1;
   hcan.Init.ExtFiltersNbr = 0;
   hcan.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if ((res = HAL_FDCAN_Init(&hcan)) != HAL_OK)
@@ -140,12 +140,6 @@ void MX_FDCAN1_Init(void)
       while(1);
   }
 
-  filterConfig.FilterIndex = 1;
-  filterConfig.FilterID1 = 0x010; //ID to check
-  filterConfig.FilterID2 = 0x7FF; //Bits of ID1 that must match
-  if((res = HAL_FDCAN_ConfigFilter(&hcan, &filterConfig)) != HAL_OK){
-      while(1);
-  }
   HAL_FDCAN_ConfigInterruptLines(&hcan, FDCAN_IT_GROUP_RX_FIFO0 | FDCAN_IT_GROUP_SMSG, FDCAN_INTERRUPT_LINE0);
 
   //Activate interrupt line 0
@@ -160,13 +154,6 @@ void MX_FDCAN1_Init(void)
   NVIC_SetPriority(FDCAN1_IT0_IRQn, 100);
 
   NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
-
-//  uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
-//  int ret = CAN_send_packet(0x7F1, data, 8, false);
-//
-//  can_rx_msg msg;
-//  while((ret = CAN_receive_packet(&msg)) != HAL_OK);
-//  ret = 0;
 }
 
 void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
@@ -175,9 +162,6 @@ void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
   GPIO_InitTypeDef GPIO_InitStruct = {};
   if(fdcanHandle->Instance==FDCAN1)
   {
-  /* USER CODE BEGIN FDCAN1_MspInit 0 */
-
-  /* USER CODE END FDCAN1_MspInit 0 */
     /* FDCAN1 clock enable */
     __HAL_RCC_FDCAN_CLK_ENABLE();
   
@@ -192,10 +176,6 @@ void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* fdcanHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN FDCAN1_MspInit 1 */
-
-  /* USER CODE END FDCAN1_MspInit 1 */
   }
 }
 
@@ -204,9 +184,6 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
 
   if(fdcanHandle->Instance==FDCAN1)
   {
-  /* USER CODE BEGIN FDCAN1_MspDeInit 0 */
-
-  /* USER CODE END FDCAN1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_FDCAN_CLK_DISABLE();
   
@@ -215,10 +192,6 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle)
     PA12     ------> FDCAN1_TX 
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
-
-  /* USER CODE BEGIN FDCAN1_MspDeInit 1 */
-
-  /* USER CODE END FDCAN1_MspDeInit 1 */
   }
 } 
 
