@@ -95,26 +95,28 @@ void MX_TIM2_Init(void)
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
   
-  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   /**TIM2 GPIO Configuration  
   PA0   ------> TIM2_CH1
   PA1   ------> TIM2_CH2 
   */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  gpio_port_enable_clock(PIN_COD_L_A.port);
+  gpio_port_enable_clock(PIN_COD_L_B.port);
 
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+  GPIO_InitStruct.Pin = PIN_COD_L_A.pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  GPIO_InitStruct.Alternate = PIN_COD_L_AF;
+  LL_GPIO_Init(PIN_COD_L_A.port, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = PIN_COD_L_B.pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  GPIO_InitStruct.Alternate = PIN_COD_L_AF;
+  LL_GPIO_Init(PIN_COD_L_B.port, &GPIO_InitStruct);
 
   TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
@@ -133,9 +135,9 @@ void MX_TIM2_Init(void)
   LL_TIM_IC_SetPolarity(TIM2, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
   LL_TIM_SetTriggerOutput(TIM2, LL_TIM_TRGO_RESET);
   LL_TIM_DisableMasterSlaveMode(TIM2);
-  LL_TIM_EnableCounter(TIM2);
-  LL_TIM_SetCounter(TIM2, ((uint32_t)1<<31)-1);
 
+  LL_TIM_EnableCounter(TIM2);
+  LL_TIM_SetCounter(TIM2, (0x7fffffff));
 }
 /* TIM3 init function */
 void MX_TIM3_Init(void)
@@ -147,26 +149,28 @@ void MX_TIM3_Init(void)
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
   
-  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   /**TIM3 GPIO Configuration  
   PA6   ------> TIM3_CH1
   PA7   ------> TIM3_CH2 
   */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  gpio_port_enable_clock(PIN_COD_R_A.port);
+  gpio_port_enable_clock(PIN_COD_R_B.port);
 
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
+  GPIO_InitStruct.Pin = PIN_COD_R_A.pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Alternate = PIN_COD_R_AF;
+  LL_GPIO_Init(PIN_COD_R_A.port, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = PIN_COD_R_B.pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = PIN_COD_R_AF;
+  LL_GPIO_Init(PIN_COD_R_B.port, &GPIO_InitStruct);
 
   TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
@@ -186,6 +190,8 @@ void MX_TIM3_Init(void)
   LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_RESET);
   LL_TIM_DisableMasterSlaveMode(TIM3);
 
+  LL_TIM_EnableCounter(TIM3);
+  LL_TIM_SetCounter(TIM3, (0x7fff));
 }
 
 
@@ -211,11 +217,11 @@ void MX_TIM16_Init(void)
 
 
 int16_t COD_get_right(){
-  return LL_TIM_GetCounter(TIM3) - 32767;
+  return LL_TIM_GetCounter(TIM3) - 0x7fff;
 }
 
 int32_t COD_get_left(){
-  return LL_TIM_GetCounter(TIM2) - 2147483647;
+  return LL_TIM_GetCounter(TIM2) - 0x7fffffff;
 }
 
 void PWM_write(GPIO_Pin& pin, uint16_t value){

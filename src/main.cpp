@@ -121,7 +121,6 @@ int main(void)
       }
     }
 
-
     //Periodic encoder position message
     if(position_timer.check()){
       if(canpb.is_tx_available()){
