@@ -48,9 +48,7 @@ int main(void)
 
   mcs.init();
 
-  pinMode(PB3, PinDirection::OUTPUT);
   pinMode(PIN_LED, PinDirection::OUTPUT);
-  setPin(PB3);
   setPin(PIN_LED);
   PWM_write(PA10,  0);
   PWM_write(PA8,  0);
@@ -151,6 +149,7 @@ int main(void)
     //Periodic Heartbeat
     if(heartbeat_timer.check()){
       if(canpb.is_tx_available()){
+        togglePin(PIN_LED);
         if(canpb.send_msg(msg_heartbeat) != Can_PB::CAN_PB_RET_OK){
           serial.print("ERROR: SENDING HEARTBEAT\r\n");
         }

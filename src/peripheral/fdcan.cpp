@@ -55,7 +55,7 @@ int CAN_receive_packet(can_msg* msg){
 int CAN_send_packet(can_msg* msg){
   int res=CAN_ERROR_STATUS::CAN_PKT_OK;
 
-  FDCAN_TxHeaderTypeDef header;
+  FDCAN_TxHeaderTypeDef header = {};
   header.DataLength = msg->size << 16;
   header.Identifier = msg->id;
   header.FDFormat = FDCAN_CLASSIC_CAN;
@@ -235,6 +235,8 @@ void FDCAN1_IT0_IRQHandler(void){
       // A TX mailbox completed a transmit request, it is now free
       if(!messages_tx.is_empty()){
         msg = messages_tx.pop();
+
+        tx_header = {};
 
         tx_header.DataLength = msg.size << 16;
         tx_header.Identifier = msg.id;
