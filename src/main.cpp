@@ -6,12 +6,11 @@
 #include "config.h"
 
 
-#define STR(x)  #x
-#define XSTR(x) STR(x)
-
 /**********************************************************************
  *                             GLOBAL OBJECTS
  **********************************************************************/
+can_msg can_raw_msg;
+
 Metro position_timer(10);
 Metro heartbeat_timer(500);
 
@@ -23,8 +22,6 @@ int main(void)
 {
   int ret;
   MotionController::STOP_STATUS mcs_stop_status;
-
-  can_rx_msg can_raw_msg;
 
   // Proto Buffers Messages
   BusMessage msg_rx = BusMessage_init_zero;
@@ -65,7 +62,7 @@ int main(void)
   {
     // Update ISOTP server
     if(CAN_receive_packet(&can_raw_msg) == HAL_OK){
-      if(canpb.match_id(can_raw_msg.header.Identifier)){
+      if(canpb.match_id(can_raw_msg.id)){
         canpb.update_rx_msg(can_raw_msg);
       }
     }
@@ -127,15 +124,6 @@ int main(void)
     }
 
 
-    mcs_stop_status = mcs.has_stopped();
-    //If the robot has stopped or cannot move normally
-    if(mcs_stop_status != MotionController::STOP_STATUS::NONE){
-      msg_move_end.message_content.movementEnded.blocked = (mcs_stop_status == MotionController::STOP_STATUS::BLOCKED);
-      if(canpb.send_msg(msg_move_end) != Can_PB::CAN_PB_RET_OK){
-        serial.print("ERROR: SENDING MOVEMENT END\r\n");
-      }
-    }
-
     //Periodic encoder position message
     if(position_timer.check()){
       if(canpb.is_tx_available()){
@@ -145,7 +133,20 @@ int main(void)
           serial.print("ERROR: SENDING ENCODER POS\r\n");
         }
       }
+
+      // Update block status
+      mcs.detect_stop();
+
+      mcs_stop_status = mcs.has_stopped();
+      //If the robot has stopped or cannot move normally
+      if(mcs_stop_status != MotionController::STOP_STATUS::NONE){
+        msg_move_end.message_content.movementEnded.blocked = (mcs_stop_status == MotionController::STOP_STATUS::BLOCKED);
+        if(canpb.send_msg(msg_move_end) != Can_PB::CAN_PB_RET_OK){
+          serial.print("ERROR: SENDING MOVEMENT END\r\n");
+        }
+      }
     }
+
 
     //Periodic Heartbeat
     if(heartbeat_timer.check()){
@@ -163,16 +164,11 @@ int main(void)
 extern "C"{
 #endif
 void TIM1_UP_TIM16_IRQHandler(void){
-  static uint8_t i = 0;
   // Control loop
   if(LL_TIM_IsActiveFlag_UPDATE(TIM16)){
     LL_TIM_ClearFlag_UPDATE(TIM16);
     mcs.update_position();
     mcs.control_motion();
-    if((++i) == 10){ // Evry 10ms
-      mcs.detect_stop();
-      i = 0;
-    }
   }
 }
 #ifdef __cplusplus

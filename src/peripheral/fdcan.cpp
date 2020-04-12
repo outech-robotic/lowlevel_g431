@@ -7,10 +7,11 @@
 FDCAN_HandleTypeDef hcan;
 
 // Buffer storing packets waiting for the peripheral to send them
-ring_buffer<CONST_CAN_BUFFER_SIZE, can_tx_msg> messages_tx;
+ring_buffer<CONST_CAN_BUFFER_SIZE, can_msg> messages_tx;
 
 // Buffer storing packets received by the peripheral, waiting processing by the main program
-ring_buffer<CONST_CAN_BUFFER_SIZE, can_rx_msg> messages_rx;
+ring_buffer<CONST_CAN_BUFFER_SIZE, can_msg> messages_rx;
+
 
 void CAN_IRQ_RX_Pending_enable(FDCAN_HandleTypeDef* can, uint32_t fifo){
     SET_BIT(can->Instance->IE, fifo==FDCAN_RX_FIFO0?FDCAN_IT_RX_FIFO0_NEW_MESSAGE:FDCAN_IT_RX_FIFO1_NEW_MESSAGE);
@@ -29,64 +30,69 @@ void CAN_IRQ_TX_Empty_disable(FDCAN_HandleTypeDef* can){
 }
 
 
-int CAN_receive_packet(can_rx_msg* msg){
+int CAN_receive_packet(can_msg* msg){
+  FDCAN_RxHeaderTypeDef header;
   int res;
-    if(!messages_rx.is_empty()){
-      *msg = messages_rx.pop();
-      res = HAL_OK;
+  if(!messages_rx.is_empty()){
+    *msg = messages_rx.pop();
+    res = HAL_OK;
+  }
+  else{
+    if(HAL_FDCAN_GetRxFifoFillLevel(&hcan, FDCAN_RX_FIFO0) > 0){
+      // At least one message has been received since last read
+      res = HAL_FDCAN_GetRxMessage(&hcan, FDCAN_RX_FIFO0, &header, msg->data.u8);
+      msg->id = header.Identifier;
+      msg->size = header.DataLength>>16;
     }
     else{
-      if(HAL_FDCAN_GetRxFifoFillLevel(&hcan, FDCAN_RX_FIFO0) > 0){
-        // At least one message has been received since last read
-        res = HAL_FDCAN_GetRxMessage(&hcan, FDCAN_RX_FIFO0, &msg->header, msg->data.u8);
-        msg->header.DataLength>>=16;
-      }
-      else{
-        res = HAL_FDCAN_ERROR_FIFO_EMPTY;
-      }
+      res = HAL_FDCAN_ERROR_FIFO_EMPTY;
     }
+  }
   return res;
 }
 
 
-int CAN_send_packet(can_tx_msg* msg){
+int CAN_send_packet(can_msg* msg){
   int res=CAN_ERROR_STATUS::CAN_PKT_OK;
-  if(msg->header.DataLength > FDCAN_DLC_BYTES_8){
+
+  FDCAN_TxHeaderTypeDef header;
+  header.DataLength = msg->size << 16;
+  header.Identifier = msg->id;
+  header.FDFormat = FDCAN_CLASSIC_CAN;
+  header.TxFrameType = FDCAN_DATA_FRAME;
+  header.IdType = FDCAN_STANDARD_ID;
+
+  if(msg->size > 8){
     res = CAN_ERROR_STATUS::PACKET_DLC_TOO_LARGE;
   }
-  if(msg->header.Identifier>0x7FF){
+  if(header.Identifier>0x7FF){
     res = CAN_ERROR_STATUS::PACKET_ID_TOO_LARGE;
   }
   if(!msg->data.u8){
     res = CAN_ERROR_STATUS::DATA_NPE;
   }
-  if(msg->header.IdType != FDCAN_STANDARD_ID){
-    res = CAN_ERROR_STATUS::NON_STD_NOT_SUPPORTED;
-  }
-    if(res >= 0){
-      if(HAL_FDCAN_GetTxFifoFreeLevel(&hcan)==0){ // No free buffers in hardware, bufferize
-        messages_tx.push(*msg);
-        CAN_IRQ_TX_Empty_enable(&hcan);
-        res = CAN_ERROR_STATUS::CAN_PKT_OK;
-      }
-      else{
-        if((res = HAL_FDCAN_AddMessageToTxFifoQ(&hcan, &msg->header, msg->data.u8)) != HAL_OK){
-          return CAN_ERROR_STATUS::PACKET_TX_ERROR;
-        }
-        CAN_IRQ_TX_Empty_enable(&hcan);
-      }
+
+  if(res >= 0){
+    if(HAL_FDCAN_GetTxFifoFreeLevel(&hcan)==0){ // No free buffers in hardware, bufferize
+      messages_tx.push(*msg);
+      CAN_IRQ_TX_Empty_enable(&hcan);
+      res = CAN_ERROR_STATUS::CAN_PKT_OK;
     }
+    else{
+      if((res = HAL_FDCAN_AddMessageToTxFifoQ(&hcan, &header, msg->data.u8)) != HAL_OK){
+        return CAN_ERROR_STATUS::PACKET_TX_ERROR;
+      }
+      CAN_IRQ_TX_Empty_enable(&hcan);
+    }
+  }
   return res;
 }
 
 
-int CAN_send_packet(uint16_t std_id, const uint8_t* data, uint8_t size, bool remote){
-  can_tx_msg msg={};
-  msg.header.FDFormat = FDCAN_CLASSIC_CAN;
-  msg.header.TxFrameType = remote ? FDCAN_REMOTE_FRAME : FDCAN_DATA_FRAME;
-  msg.header.DataLength=size << 16;
-  msg.header.Identifier=std_id;
-  msg.header.IdType = FDCAN_STANDARD_ID;
+int CAN_send_packet(uint16_t std_id, const uint8_t* data, uint8_t size){
+  can_msg msg={};
+  msg.size = size;
+  msg.id=std_id;
   std::copy(&data[0], &data[size], msg.data.u8);
   return CAN_send_packet(&msg);
 }
@@ -201,8 +207,9 @@ extern "C"{
 
 void FDCAN1_IT0_IRQHandler(void){
   HAL_StatusTypeDef res;
-  can_tx_msg tx_msg;
-  can_rx_msg rx_msg;
+  FDCAN_RxHeaderTypeDef rx_header;
+  FDCAN_TxHeaderTypeDef tx_header;
+  can_msg msg;
 
   /* ************** RX ************** */
   if(__HAL_FDCAN_GET_FLAG(&hcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE)){
@@ -211,9 +218,10 @@ void FDCAN1_IT0_IRQHandler(void){
       // At least one message has been received since last read
       if(!messages_rx.is_full()){
         //There is room in the program buffer
-        if((res = HAL_FDCAN_GetRxMessage(&hcan, FDCAN_RX_FIFO0, &rx_msg.header, rx_msg.data.u8)) == HAL_OK){
-          rx_msg.header.DataLength>>=16;
-          messages_rx.push(rx_msg);
+        if((res = HAL_FDCAN_GetRxMessage(&hcan, FDCAN_RX_FIFO0, &rx_header, msg.data.u8)) == HAL_OK){
+          msg.size = rx_header.DataLength>>16;
+          msg.id = rx_header.Identifier;
+          messages_rx.push(msg);
         }
       }
     }
@@ -226,8 +234,15 @@ void FDCAN1_IT0_IRQHandler(void){
     if(HAL_FDCAN_GetTxFifoFreeLevel(&hcan) > 0){
       // A TX mailbox completed a transmit request, it is now free
       if(!messages_tx.is_empty()){
-        tx_msg = messages_tx.pop();
-        HAL_FDCAN_AddMessageToTxFifoQ(&hcan, &tx_msg.header, tx_msg.data.u8);
+        msg = messages_tx.pop();
+
+        tx_header.DataLength = msg.size << 16;
+        tx_header.Identifier = msg.id;
+        tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+        tx_header.TxFrameType = FDCAN_DATA_FRAME;
+        tx_header.IdType = FDCAN_STANDARD_ID;
+
+        HAL_FDCAN_AddMessageToTxFifoQ(&hcan, &tx_header, msg.data.u8);
       }
       else{
         CAN_IRQ_TX_Empty_disable(&hcan);
