@@ -18,10 +18,10 @@ void Error_Handler(void);
  * MOTOR CONTROL
  */
 // TIMER PWM
-#define CONST_PWM_PRESCALER  80
-#define CONST_PWM_AUTORELOAD 1000
+#define CONST_PWM_PRESCALER  8      // 20MHz resolution
+#define CONST_PWM_AUTORELOAD 1000   // 20kHz period
 #define CONST_PWM_REPETITION 1
-#define CONST_PWM_MAX        CONST_PWM_AUTORELOAD
+#define CONST_PWM_MAX        CONST_PWM_AUTORELOAD //PWM between 0 and 1000
 
 // ASSERVISSEMENT
 #define MOTION_CONTROL_FREQ ((int32_t)(1000)) // Hz
