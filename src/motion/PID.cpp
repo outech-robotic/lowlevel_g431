@@ -19,24 +19,24 @@ void PID::reset(){
 }
 
 
-void PID::set_coefficients(float new_kp, float new_ki, float new_kd, uint32_t new_freq){
+void PID::set_coefficients(double new_kp, double new_ki, double new_kd, uint32_t new_freq){
   kp = new_kp;
   ki = new_ki / new_freq;
   kd = new_kd * new_freq;
 }
 
 
-void PID::set_kp(float new_kp){
+void PID::set_kp(double new_kp){
   kp = new_kp;
 }
 
 
-void PID::set_ki(float new_ki, uint32_t new_freq){
+void PID::set_ki(double new_ki, uint32_t new_freq){
   ki = new_ki/new_freq;
 }
 
 
-void PID::set_kd(float new_kd, uint32_t new_freq){
+void PID::set_kd(double new_kd, uint32_t new_freq){
   kd = new_kd*new_freq;
 }
 
@@ -53,7 +53,7 @@ void PID::set_anti_windup(int32_t new_limit){
 }
 
 
-void PID::get_coefficients(float* ret_kp, float* ret_ki, float* ret_kd){
+void PID::get_coefficients(double* ret_kp, double* ret_ki, double* ret_kd){
   *ret_kp = kp;
   *ret_ki = ki;
   *ret_kd = kd;
@@ -61,7 +61,14 @@ void PID::get_coefficients(float* ret_kp, float* ret_ki, float* ret_kd){
 
 
 int16_t PID::compute(int32_t input, int32_t setpoint){
+  static uint32_t i = 0;
   int64_t res;
+  if(setpoint == 0){
+    i = 0;
+  }
+  else{
+    i++;
+  }
 
   error = setpoint-input;
   derivative_error = (error-last_error) - (setpoint - last_setpoint);
@@ -69,17 +76,21 @@ int16_t PID::compute(int32_t input, int32_t setpoint){
   last_setpoint = setpoint;
 
   //Proportionnal component of output
-  comp_proportional = ((int64_t)kp) * ((int64_t)error);
+  comp_proportional = kp*error;
 
   //Integral component
-  comp_integral += ((int64_t)ki) * ((int64_t)error);
+  if(error != 0){
+  comp_integral += ki*error;
   if(comp_integral > integral_max)
     comp_integral = integral_max;
   else if(comp_integral < integral_min)
     comp_integral = integral_min;
-
+  }
+  else{
+    comp_integral = 0;
+  }
   //Derivative component
-  comp_derivative = (int64_t)kd * (int64_t)derivative_error;
+  comp_derivative = kd*derivative_error;
 
   //Complete scaled output
   res = comp_proportional + comp_integral + comp_derivative;

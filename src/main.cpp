@@ -53,6 +53,8 @@ int main(void)
   PWM_write(PA10,  0);
   PWM_write(PA8,  0);
 
+  mcs.set_control(true, true, true);
+
   serial.init(115200);
   serial.print("Setup done \r\n");
 

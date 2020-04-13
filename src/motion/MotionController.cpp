@@ -33,10 +33,10 @@ void MotionController::init() {
   pid_speed_right.set_output_limit(CONST_PWM_MAX);
   pid_speed_right.set_anti_windup(CONST_PWM_MAX);
 
-  pid_translation.set_coefficients(3.0, 0.1, 0.2, MOTION_CONTROL_FREQ);
+  pid_translation.set_coefficients(3.0, 0.1, 0.02, MOTION_CONTROL_FREQ);
   pid_translation.set_output_limit(MAX_SPEED_TRANSLATION_TICK);
   pid_translation.set_anti_windup(MAX_SPEED_TRANSLATION_TICK);
-  pid_rotation.set_coefficients(4.9, 0.2, 0.8, MOTION_CONTROL_FREQ);
+  pid_rotation.set_coefficients(4.9, 0.2, 0.08, MOTION_CONTROL_FREQ);
   pid_rotation.set_output_limit(MAX_SPEED_ROTATION_TICK);
   pid_rotation.set_anti_windup(MAX_SPEED_ROTATION_TICK);
 
@@ -227,64 +227,6 @@ int32_t MotionController::get_COD_left(){
 
 int32_t MotionController::get_COD_right(){
   return cod_right.current;
-}
-
-/*
-bool MotionController::is_wheel_blocked(wheel_block_status& wheel_status, const encoder_status& cod_status, PID& pid_status){
-  static const uint8_t INIT_COUNT = 20;
-  static const float LIMIT = 0.3;
-  // Each time the wheel speed starts to be far from its setpoint:
-  // a count is initialized and goes down to 0 and stays there until the wheel isn't blocked
-  if(robot_status.moving && (ABS(cod_status.speed_current)<ABS(cod_status.speed_setpoint)*LIMIT)
-      &&
-      ABS(pid_translation.get_error()>5*robot_status.translation_tolerance)){
-    // Init count if first block detection
-    if(!wheel_status.blocked){
-      wheel_status.blocked = true; //Start block detection
-      wheel_status.count_blocks = INIT_COUNT; //Countdown init
-    }
-    // Downcount until 0 is reached : enough block cycles were detected
-    if(wheel_status.count_blocks > 0){
-      wheel_status.count_blocks --;
-    }
-  }
-  else{
-    wheel_status.blocked = false;
-    wheel_status.count_blocks=INIT_COUNT;
-  }
-  return (wheel_status.blocked && (wheel_status.count_blocks == 0));
-}*/
-
-// Detects if the robot is physically stopped (blocked)
-bool MotionController::is_robot_blocked(){
-  bool left_wheel_blocked  = is_wheel_blocked(left_block_status, cod_left, pid_speed_left);
-  bool right_wheel_blocked = is_wheel_blocked(right_block_status, cod_right, pid_speed_right);
-
-  return left_wheel_blocked || right_wheel_blocked;
-}
-
-// Detects if the robot completed its previous movement order
-bool MotionController::has_movement_ended(){
-  const uint8_t INIT_COUNT = 0;
-  static uint8_t stop_count = INIT_COUNT;
-  static bool done = false;
-  int32_t err_trans = ABS(pid_translation.get_error());
-  int32_t err_rot   = ABS(pid_rotation.get_error());
-
-  if(err_trans <= robot_status.translation_tolerance && err_rot <= robot_status.rotation_tolerance){
-    //Approximately at destination
-    if(!done){
-      done = true;
-      stop_count = INIT_COUNT;
-    }
-    if(stop_count > 0){
-      stop_count--;
-    }
-  }
-  else{
-    done = false;
-  }
-  return done && (stop_count == 0);
 }
 
 
